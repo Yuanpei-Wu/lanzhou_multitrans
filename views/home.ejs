@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" >
+    <script src="/javascripts/jquery-2.2.4.js"></script>
+    <script src="/javascripts/socket.io.js"></script>
+    <script src="/javascripts/highcharts.js"></script>
+    <script src="/javascripts/highcharts-more.js"></script>
+    <script src="/javascripts/layer.js"></script>
+    <script src="/javascripts/jquery.dataTables.js"></script>
+    <script src="/javascripts/bootstrap.js"></script>
+    <script src="/javascripts/app.js"></script>
+    <script src="/javascripts/bootstrap-switch.js"></script>
+    <script src="/javascripts/echarts.js"></script>
+    <script src="/javascripts/china.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="/stylesheets/docs.min.css"/>-->
+    <link rel="stylesheet" type="text/css" href="/stylesheets/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/table.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/AdminLTE.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="/stylesheets/AdminLTE.min.css"/>-->
+    <link rel="stylesheet" type="text/css" href="/stylesheets/skin-blue.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap-switch.css"/>
+
+
+
+
+    <title>配置管理</title>
+    <style>
+        .kuang{margin:0 auto;text-align: center;margin-top:20px;padding-left:40px;padding-right:40px;border:2px solid darkgreen;}
+        #mess{text-align: center}
+        .box{margin:0 auto;text-align: center;margin-top:30px;padding-left:20px;padding-right:20px;border:2px solid darkgreen;}
+        #main{margin:0 auto;text-align: center;margin-top:30px;padding-left:20px;padding-right:20px;height:300px;width:800px;border:3px solid yellow;}
+        #.value{width: 200px;height:80px;border:1px solid;text-align: center;line-height: 200px;display: inline-block;}
+        /*ul.affix{*/
+        /*top:80px;*/
+        /*}*/
+        h1{
+            font-size:25px;
+        }
+
+
+
+    </style>
+</head>
+<body class="hold-transition skin-blue " style="background-color:rgb(115,137,186)">
+
+
+
+<div class="wrapper">
+
+    <header class="main-header ">
+        <a href="#" class="logo">
+            <!-- logo for regular state and mobile devices -->
+            <span class="logo-lg">系统管理</span>
+        </a>
+        <nav class="navbar navbar-static-top">
+            <div class="navbar-custom-menu">
+                <ul class="nav navbar-nav">
+                <li >   <a> 协同路由器:<input name="marip"></a></li>
+                    <li>
+                        <a href="#" id="start_trans">开始传输</a>
+                    </li>
+                    <li>
+                        <a href="#" id="end_trans">关闭传输</a>
+                    </li>
+                </ul>
+
+            </div>
+        </nav>
+    </header>
+
+    <aside class="main-sidebar" style="width:17%;font-size:150%">
+        <!-- sidebar: style can be found in sidebar.less -->
+        <section class="sidebar">
+            <ul class="sidebar-menu">
+
+
+
+                <li class="active treeview">
+                    <a target="menuFrame" href="current_data">
+                        <i class="fa fa-dashboard"></i> <span>实时数据</span>
+                           <span class="pull-right-container">
+                           <i class="fa fa-angle-left pull-right"></i>
+                             </span>
+                    </a>
+                </li>
+
+
+                <li class=" treeview">
+                    <a target="menuFrame" href="history_data">
+                        <i class="fa fa-dashboard"></i> <span>历史数据</span>
+            <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
+                    </a>
+                </li>
+
+
+                <li class="treeview">
+                    <a href="#">
+                        <i class="fa fa-edit"></i> <span>设置</span>
+            <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
+                    </a>
+                    <ul class="treeview-menu">
+                        <li><a target="menuFrame"href="user_manage"><i class="fa fa-circle-o"></i> 用户管理</a></li>
+                        <li><a target="menuFrame"href="net_manage"><i class="fa fa-circle-o"></i> 网络转储</a></li>
+                        <li><a target="menuFrame"href="mount_manage"><i class="fa fa-circle-o"></i> 批量设置</a></li>
+                    </ul>
+                </li>
+
+
+
+
+
+            </ul>
+        </section>
+        <!-- /.sidebar -->
+    </aside>
+
+    </aside>
+
+    <div class="content-wrapper" style=" margin-left:17%;">
+
+        <section class="content" style="padding:0">
+            <ul id="tip">
+            </ul>
+
+            <iframe id="menuFrame" name="menuFrame" style="overflow:visible;border:0px ;" scrolling="yes" frameborder="no" height="800px" width="100%"  >
+
+            </iframe>
+        </section>
+    </div><!--end content-wrapper-->
+</div><!--end wrapper-->
+<script>
+
+//window.location.href="http://localhost/current_data";
+var ipaddr='';
+var url='';
+ipaddr=location.hostname;
+var t=document.getElementById("menuFrame").src="http://"+ipaddr+"/current_data";
+
+//先获得online_device，填充$('#tip")
+function get_online(){
+    $.get('return_online', function (data) {
+        $('#tip').remove();
+        for(var item in data){
+            $("#tip").append('<li>'+item['route_id']+'</li>');
+        }
+    })
+    setTimeout(get_online,5000);
+}
+//初始化 #tip应该在input正下方
+var position=$("input[name='marip']").offset();
+$('#tip').offset({
+    top:position.top+50,
+    left:position.left
+});
+$('#tip').hide();
+//input点击后显示#tip
+$("input[name='marip']").click(function () {
+    $.get('return_online', function (data) {
+        $("#tip li").remove();
+        for(var item in data){
+            $("#tip").append('<li>'+data[item]['route_id']+'</li>');
+        }
+    })
+    $("#tip").show();
+})
+//#tip点击后填充Input,隐藏#tip
+$("#tip").on('click','li', function () {
+    var text=$(this).text();
+    $("input[name='marip']").val(text);
+    $('#tip').hide();
+})
+
+$("#start_trans").click(function(){
+    url='http://'+ipaddr+'/start_trans';
+    var marip=$("input[name='marip']").val();
+    if(marip==null){
+        alert("地址不能为空");
+        return;
+    }
+    $.post(url,{"marip":marip},function(response){
+        if(response=="success")
+        alert("开始传输成功");
+        else
+        alert("开始传输失败");
+        console.log("===================================start_trans==============================");
+    });
+})
+$("#end_trans").click(function(){
+
+    url='http://'+ipaddr+'/end_trans';
+    var marip=$("input[name='marip']").val();
+    $.post(url,{"marip":marip},function(response){
+        if(response=="success")
+        alert("结束传输");
+        console.log("===================================end_trans==============================");
+    });
+});
+    $('ul').on('click','li', function () {
+        if($(this).hasClass('active')){
+
+        }else{
+            $('ul .active').removeClass('active');
+            $(this).addClass("active");
+        }
+    })
+
+</script>
+</body>
+</html>

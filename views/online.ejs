@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" >
+    <script src="/javascripts/jquery-2.2.4.js"></script>
+    <script src="/javascripts/socket.io.js"></script>
+    <script src="/javascripts/highcharts.js"></script>
+    <script src="/javascripts/highcharts-more.js"></script>
+    <script src="/javascripts/layer.js"></script>
+    <script src="/javascripts/jquery.dataTables.js"></script>
+    <script src="/javascripts/bootstrap.js"></script>
+    <script src="/javascripts/app.js"></script>
+    <script src="/javascripts/bootstrap-switch.js"></script>
+    <script src="/javascripts/echarts.js"></script>
+    <script src="/javascripts/china.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="/stylesheets/docs.min.css"/>-->
+    <link rel="stylesheet" type="text/css" href="/stylesheets/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/table.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/AdminLTE.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/skin-blue.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap-switch.css"/>
+
+    <title>智慧协同服务器传输配置系统</title>
+</head>
+<style>
+    .box{margin:1% auto;text-align:center;border:1px solid white !important;}
+    .box.smal{width:90%;background-color: #E0E0E0;padding-left:5%;padding-right:5%; }
+
+    th{
+        height:30px !important;
+        text-align:center;
+    }
+</style>
+<body style="background-color:white;">
+<div class="box">
+    <div class="box smal" id="my_content">
+        <h3> 在线设备 </h3>
+            <% for(i=0;i<global.online_device.length;i++){%>
+                <div>
+                    <%=global.online_device[i].checi%>
+                    <input type="button" value="开始传输">
+                    <input type="button" value="结束传输">
+                </div>
+            <%}%>
+    </div>
+</div>
+</body>

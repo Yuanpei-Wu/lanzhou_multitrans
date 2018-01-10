@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" >
+    <script src="/javascripts/jquery-2.2.4.js"></script>
+    <script src="/javascripts/socket.io.js"></script>
+    <script src="/javascripts/highcharts.js"></script>
+    <script src="/javascripts/highcharts-more.js"></script>
+    <script src="/javascripts/layer.js"></script>
+    <script src="/javascripts/jquery.dataTables.js"></script>
+    <script src="/javascripts/bootstrap.js"></script>
+    <script src="/javascripts/app.js"></script>
+    <script src="/javascripts/bootstrap-switch.js"></script>
+    <script src="/javascripts/echarts.js"></script>
+    <script src="/javascripts/china.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="/stylesheets/docs.min.css"/>-->
+    <link rel="stylesheet" type="text/css" href="/stylesheets/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/table.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/AdminLTE.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/skin-blue.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap-switch.css"/>
+
+    <title>智慧协同服务器传输配置系统</title>
+</head>
+<style>
+    .box{margin:1% auto;text-align:center;border:1px solid white !important;}
+    .box.smal{width:90%;background-color: #E0E0E0;padding-left:5%;padding-right:5%; }
+
+    th{
+        height:30px !important;
+        text-align:center;
+    }
+</style>
+<body style="background-color:white;">
+<div class="box">
+    <div class="box smal">
+        <h3> 网络转储 </h3>
+        本机IP地址：<input type="text" maxlength="20" id="ip_addr">
+        <input type="button" value="开始转储" id="start"/>
+        <table text-align="center" id="staff_table" class="display" cellspacing="0">
+            <thead>
+            <tr>
+                <th>序号</th>
+                <th>文件名</th>
+                <th>更新时间</th>
+                <th>传输开始时间</th>
+                <th>传输结束时间</th>
+                <th>传输状态</th>
+            </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+<script>
+    $(function(){
+        var totalrate=0;
+        var ipaddr='';
+        ipaddr=location.hostname;
+        var  table=$('#staff_table').DataTable( {
+            "ajax": {
+                "url":'http://'+ipaddr+'/return_net_data',
+                "type": "GET"
+            },
+            "destroy": true,
+            "fnCreatedRow": function (nRow, aData, iDataIndex) {
+                if(aData[0]=='0'&&aData[1]=='0'&&aData[2]=='0'&&aData[3]=='0'&&aData[4]=='0'&&aData[5]=='0'){
+                    table.rows($(nRow)).remove();
+                }
+                if(parseInt(aData[5])>0){
+                    $('td:eq(5)',nRow).html('<a style="color:darkgreen;">已完成</a>');
+                }else{
+                    $('td:eq(5)',nRow).html('<a style="color:blue;">正在传输</a>');
+                }
+            }
+        } );
+        $('#start').click(function(){
+            var ip_addr=$('#ip_addr').val();
+            if(ip_addr==null){
+                alert("please input your ip address");
+            }else{
+                $.get('start_netforward?ip_addr='+ip_addr,function(data){
+                    if(data=="fail"){
+                        alert("启动失败");
+                    }else{
+                        alert("开始转储");
+                    }
+                });
+            }
+
+        })
+
+     /*******************ajaxRequest***********************/
+        ajaxRequest();
+        function ajaxRequest(){
+            table.ajax.reload(null,false);
+             table.order([5,'desc'],[0,'desc']);
+            setTimeout(function () {
+                ajaxRequest();
+            },2000);
+        }
+
+    });
+
+</script>
+</body>
+</html>
+

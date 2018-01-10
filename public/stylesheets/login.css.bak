@@ -1,0 +1,64 @@
+
+  html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0; 
+            padding: 0;
+			background-size:cover;
+			background:url(../images/backg.jpg) repeat-x;
+
+			 
+        }
+
+/*---------------------°´Å¥-----------------------------*/
+.login_putin{
+box-shadow: 10px 10px 5px #888888;
+	background-color:rgb(137,221,166);
+    position:relative;
+    height:250px;
+	width:450px;
+	margin:0 auto;
+   text-align:center;
+    border:4px solid #c4e1ff;
+	-webkit-border-radius:.3em;
+	-moz-border-radius: .3em;
+
+    top:30%;
+/* 	border-image:url(../public/images/border.png) 30 30 round;
+-moz-border-image:url(../public/images/border.png) 30 30 round; 
+-webkit-border-image:url(../public/images/border.png) 30 30 round; 
+-o-border-image:url(../public/images/border.png) 30 30 round; */
+		
+}
+
+
+/* .login_btn{
+	height:30px;
+	position:relative;
+	top:50%;
+	width:70px;
+	margin:0 auto;
+} */
+.login_btn input{
+	height:30px;
+	position:relative;
+	top:50%;
+	width:70px;
+	margin:0 auto;
+	
+	padding-left:10px;
+	-webkit-border-radius:.3em;
+	-moz-border-radius: .3em;
+
+	background:#1b85fd;
+	color:#FFF;
+	font-size:16px;
+	font-weight:bolder;
+	letter-spacing:0.8em;
+
+
+}
+
+.login_btn input:hover{
+	background:#1263be;
+	}

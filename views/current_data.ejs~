@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" >
+    <script src="/javascripts/jquery-2.2.4.js"></script>
+    <script src="/javascripts/socket.io.js"></script>
+    <script src="/javascripts/highcharts.js"></script>
+    <script src="/javascripts/highcharts-more.js"></script>
+    <script src="/javascripts/layer.js"></script>
+    <script src="/javascripts/jquery.dataTables.js"></script>
+    <script src="/javascripts/bootstrap.js"></script>
+    <script src="/javascripts/app.js"></script>
+    <script src="/javascripts/bootstrap-switch.js"></script>
+    <script src="/javascripts/echarts.js"></script>
+    <script src="/javascripts/china.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="/stylesheets/docs.min.css"/>-->
+    <link rel="stylesheet" type="text/css" href="/stylesheets/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/table.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/AdminLTE.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/skin-blue.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap-switch.css"/>
+
+    <title>智慧协同服务器传输配置系统</title>
+</head>
+<style>
+    .box{margin:1% auto;text-align:center;border:1px solid white !important;}
+    .box.smal{width:90%;background-color: #E0E0E0;padding-left:5%;padding-right:5%; }
+
+    th{
+        height:30px !important;
+        text-align:center;
+    }
+</style>
+<body style="background-color:white;">
+
+<div class="box">
+
+    <div class="box smal">
+
+        <h3> 实时传输 </h3>
+        <div class="box smal" style="height: 45px;background-color:rgb(34,45,50);color:white;padding-top:9px;font-size: 20px;" id="total_rate">
+
+        </div>
+        <table text-align="center"id="staff_table" class="display" cellspacing="0">
+            <thead>
+            <tr>
+                <th>序号</th>
+                <th>车次号/</th>
+                <th>文件名</th>
+
+                <th>传输开始时间</th>
+                <th>传输结束时间</th>
+                <th>文件类型</th>
+                <!--<th>目前大小</th>-->
+                <th>文件大小(Mb)</th>
+                <!--<th>文件传输状态</th>-->
+                <th>&nbsp&nbsp&nbsp&nbsp传输进度&nbsp&nbsp&nbsp&nbsp</th>
+                <th>&nbsp&nbsp&nbsp&nbsp传输速率(Mb/s)&nbsp&nbsp&nbsp&nbsp</th>
+            </tr>
+            </thead>
+
+
+        </table>
+        <!--<button id="refres">刷新</button>-->
+
+
+
+    </div>
+
+
+</div>
+<script>
+    $(function(){
+//        var width=document.body.clientWidth;//在2345加速浏览器和火狐和ie8中都是显示白色可见区域即body部分（包括）侧边滚动栏的宽度
+        //var widt=window.innerWidth;//在2345加速浏览器和火狐和ie8中都是显示白色可见区域即body部分（包括）侧边滚动栏的宽度
+        //var wid=document.body.offsetWidth;//在2345加速浏览器和火狐和ie8中都是显示白色可见区域即body部分（包括）侧边滚动栏的宽度
+        //var wi=document.body.scrollWidth;//在2345加速浏览器和火狐和ie8中都是显示白色可见区域即body部分（包括）侧边滚动栏的宽度
+        //var w=window.screen.availWidth;
+        //alert(width);
+        var totalrate=0;
+        var ipaddr='';
+        ipaddr=location.hostname;
+        var  table=$('#staff_table').DataTable( {
+            "ajax": {
+                "url":'http://'+ipaddr+'/return_current_data',
+                "type": "GET"
+            },
+            "lengthMenu": [ 15,20,25,30,40,70,100 ],
+            "destroy": true,
+            "fnCreatedRow": function (nRow, aData, iDataIndex) {
+                               
+                if (aData[7] == "100%") {
+$('td:eq(8)', nRow).html('<a style="color:darkgreen;">0</a>');
+                    $('td:eq(7)', nRow).html('<a style="color:darkgreen;">完成</a>');
+  
+                }
+                else {
+                    if (parseFloat(aData[7]) <parseFloat("100%") && parseFloat(aData[7])>parseFloat("0%")) {
+                        $('td:eq(7)', nRow).html('<a style="color:blue;">'+aData[7]+'</a>');
+                    }
+                    else
+                    {
+$('td:eq(8)', nRow).html('<a >0</a>');}
+$('td:eq(7)', nRow).html('<a style="color:darkgoldenrod;">未开始</a>');
+ 
+
+                }
+              
+                aData[8]=parseFloat(aData[8]);
+                totalrate+=aData[8];
+
+                $('#total_rate').text("总传输速率："+(totalrate).toFixed(2)+"Mb/s");
+
+            }
+        } );
+        setInterval( function () {
+totalrate=0;    
+table.ajax.reload( null, false ); // 刷新表格数据，分页信息不会重置
+}, 2000 );
+//
+//        $('#refresh').click( function(){
+//            console.log("刷新数据表");
+//            window.location.reload();
+//        });
+
+//        var ipaddr='';
+//        var socket={};
+//        var totalrate=0;
+//        ipaddr=location.hostname;
+//        socket=io.connect("http://"+ipaddr+":80");
+//        update_filedata();
+//        socket.on('return_filedata',function(filedata){
+//            if(filedata!=null){
+//                table.row($('#staff_table  thead tr')).remove();
+//                table.clear();
+//                totalrate=0;
+//                for(var i=0;i<filedata.length;i++){
+//                    var tmp=filedata[i];
+//if(isNaN(tmp.rate))
+//{tmp.rate=0;}
+//tmp.rate=parseFloat(tmp.rate);
+
+
+//                    table.row.add([tmp.NUM,tmp.dev_id,tmp.filename,tmp.sta_time,tmp.end_time,tmp.filetype,(tmp.total_size*8/1000000).toFixed(2),tmp.percent+"%",tmp.rate+"Mb/s"]).draw();
+        
+// totalrate+=tmp.rate;
+
+
+// $('#total_rate').text("总传输速率："+(totalrate).toFixed(2)+"M/s");
+
+
+                });
+               
+//            }
+
+//        });
+//        function update_filedata(){
+//            socket.emit('get_filedata');
+//            setTimeout(function(){
+//                update_filedata();
+//            },3000);
+//        }
+//    })
+
+
+//alert(window.location);
+
+</script>
+</body>
+</html>
+

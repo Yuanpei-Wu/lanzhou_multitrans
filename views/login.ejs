@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/login.css"/>
+    <script src="/javascripts/jquery-2.2.4.js"></script>
+    <title>多通道机车视频大数据传输系统</title>
+
+</head>
+
+<body>
+
+
+<div class="login-bg">
+
+        <!-- 标题  -->
+    <!--
+        <div class="login-content-title">
+            <div class="login-content-title-child">
+                <div class="login-content-title-child-text">多通道机车视频大数据传输系统</div>
+            </div>
+        </div>
+        -->
+        <!-- 用户名 -->
+        <div class="login-content-name">
+            <div class="login-content-name-text">
+                <input name="txtUsername" class="txt-input" onkeyup="key_listen()" id="user"  type="text">
+            </div>
+        </div>
+        <!-- 密码 -->
+        <div class="login-content-password">
+            <div class="login-content-password-text">
+                <input name="txtPassword" class="txt-input" id="password" style="font-size:90%" type="password">
+            </div>
+        </div>
+        <!-- 登录按钮 -->
+        <div class="login-content-btn">
+            <input type="button" value="登录" class="login-content-btn-input" style="font-size:100%" onclick="checkpost()">
+        </div>
+        <!-- 登录错误提示 -->
+        <div class="login-content-error"></div>
+        <!-- end -->
+
+
+</div>
+<script>
+
+    if( '<%=update%>'=='true' ){
+        alert('用户权限不够，请用管理员权限登录');
+        top.location.href='login';
+    }
+    setCaretPosition($('#user')[0],0);
+    function checkpost(){
+        var data={};
+        data.username=$('#user').val();
+        data.password=$('#password').val();
+        $.ajax({
+            url:'login',
+            type:'POST',
+            data:data,
+            success:function(string){
+                if(string=="fail")
+                    alert("用户名或密码不正确");
+                else
+                    window.location.href='home';
+            }
+        })
+    }
+
+    // 设置光标位置
+    function setCaretPosition(textDom, pos){
+        if(textDom.setSelectionRange) {
+            // IE Support
+            textDom.focus();
+            textDom.setSelectionRange(pos, pos);
+        }else if (textDom.createTextRange) {
+            // Firefox support
+            var range = textDom.createTextRange();
+            range.collapse(true);
+            range.moveEnd('character', pos);
+            range.moveStart('character', pos);
+            range.select();
+        }
+    }
+    //监听keyup事件
+    function key_listen(){
+        if($('#user').val()==="admin"){
+            setCaretPosition($('#password')[0],0);
+        }
+    }
+    $('#password').bind('keyup', function(event) {
+        if (event.keyCode == "13") {
+            //回车执行查询
+            checkpost();
+        }
+    });
+</script>
+</body>
+</html>

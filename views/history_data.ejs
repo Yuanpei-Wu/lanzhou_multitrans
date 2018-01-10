@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" >
+    <script src="/javascripts/jquery-2.2.4.js"></script>
+    <script src="/javascripts/socket.io.js"></script>
+    <script src="/javascripts/highcharts.js"></script>
+    <script src="/javascripts/highcharts-more.js"></script>
+    <script src="/javascripts/layer.js"></script>
+    <script src="/javascripts/jquery.dataTables.js"></script>
+    <script src="/javascripts/bootstrap.js"></script>
+    <script src="/javascripts/app.js"></script>
+    <script src="/javascripts/bootstrap-switch.js"></script>
+    <script src="/javascripts/echarts.js"></script>
+    <script src="/javascripts/china.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="/stylesheets/docs.min.css"/>-->
+    <link rel="stylesheet" type="text/css" href="/stylesheets/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/table.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/AdminLTE.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/skin-blue.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap-switch.css"/>
+
+    <title>智慧协同服务器传输配置系统</title>
+</head>
+<style>
+    .box{margin:1% auto;text-align:center;border:1px solid white !important;}
+    .box.smal{width:90%;background-color: #E0E0E0;padding-left:5%;padding-right:5%; }
+
+    th{
+        height:30px !important;
+        text-align:center;
+    }
+</style>
+<body style="background-color:white;">
+
+<div class="box">
+
+    <div class="box smal" id="my_content">
+
+        <h3> 已传文件列表 </h3>
+
+    </div>
+</div>
+<script>
+    var ipaddr=location.hostname;
+    var table_list=[];
+
+
+
+    function check_online(){
+        $.get('return_online', function (data) {
+            var tem_len=data.length;
+            for(var i=0;i<tem_len;i++) {
+                //只有data[i]不在table_list里面的时候才会append_table
+                var num=updateSet(table_list,data[i],"tableFile");
+                if(num==(-2)){
+                    var table_len=table_list.length;
+                    append_table((table_len-1),data[i]['tableFile']);
+
+                }else{
+                    //根据update字段判断是否显示表格
+                    if(data[i].update>0){
+                        $('#'+data[i].tableFile).show();
+                    }else{
+                        $('#'+data[i].tableFile).hide();
+                    }
+                }
+
+
+            }
+            setTimeout(check_online,2000);
+        })
+    }
+    check_online();
+
+    //每两秒更新一次表格数据
+    function update_table(){
+        for(var item in table_list){
+            table_list[item]['table'].ajax.reload(null,false);
+        }
+        setTimeout(update_table,2000);
+    }
+    update_table();
+
+    //将table object存储在table_list[num]中
+    function append_table(num,ip_str){
+        $('#my_content').append('<div id="'+ip_str+'"> \
+                            <h4>'+ip_str+'车次</h4> \
+                            <button style="float:left;color:black"><a  style="color:black;">下载数据</a></button>\
+                            <table text-align="center" id="'+ip_str+'_staff_table" class="display" cellspacing="0" >\
+                            <thead>\
+                            <tr>\
+                             <th>序号</th>\
+                            <th>传输完成时间</th>\
+                            <th>设备编号</th>\
+                            <th>文件名</th>\
+                            <th>文件大小</th>\
+                            </tr>\
+                            </thead>\
+                            </table>\
+                            </div> \
+                            ');
+        var  table=$('#'+ip_str+'_staff_table').DataTable( {
+            "ajax": {
+                "url":'http://'+ipaddr+'/return_history_data?route_id='+ip_str,
+                "type": "GET"
+            },
+            "destroy": true,
+            "fnCreatedRow": function (nRow, aData, iDataIndex) {
+                $('td:eq(2)',nRow).text("协同路由器01");
+                var tmp=aData[4];
+                var tmpSize="";
+                var tmpNum=(parseFloat(tmp.filesize/1000000)*8).toFixed(2);
+                if(tmpNum>=1000){
+                    tmpSize=(tmpNum/1000).toFixed(2)+"Gb";
+                }else{
+                    tmpSize=tmpNum+"Mb";
+                }
+                $('td:eq(4)',nRow).text(tmpSize);
+            }
+
+        } );
+        table_list[num]['table']=table;
+
+    }
+
+
+
+    function updateSet(objectSet,object,key){
+        var i=objectSet.length;
+        for(var j=0;j<i;j++){
+            if(!objectSet[j].hasOwnProperty(key)|!object.hasOwnProperty(key))
+                return -1;
+            if(objectSet[j][key]===object[key])
+                return j;
+        }
+        objectSet.push(object);
+        return -2;
+    }
+
+    function getFromSet(objectSet,value,key){
+        var i=objectSet.length;
+        for(var j=0;j<i;j++){
+            if(objectSet[j][key]===value)
+                return j;
+        }
+        return -1;
+    }
+
+
+    //下载button，需要获得div父元素id，找到对应的table，table获得数据填充到href，post请求发送id filename
+    $("table[id$='staff_table'] tbody").on( 'click', 'tr', function () {
+
+        var ip_str=$(this).parent("div").attr("id");
+        var table_num=getFromSet(table_list,ip_str,'route_id');
+        var table=table_list[table_num].table;
+        if ( $(this).hasClass('selected') ) {
+            $(this).removeClass('selected');
+        }
+        else {
+            table.removeClass('selected');
+            $(this).addClass('selected');
+        }
+
+        //这里找最顶层div父节点，获得id，次一级父节点，过滤button，置其子节点<a>的href
+        var item=table.row('.selected').data();
+        $('#hom').attr('href','file/'+ip_str+'/'+item[3]);
+
+    } );
+
+
+
+
+
+
+</script>
+</body>
+</html>

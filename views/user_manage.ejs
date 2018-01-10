@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" >
+    <script src="/javascripts/jquery-2.2.4.js"></script>
+    <script src="/javascripts/socket.io.js"></script>
+    <script src="/javascripts/highcharts.js"></script>
+    <script src="/javascripts/highcharts-more.js"></script>
+    <script src="/javascripts/layer.js"></script>
+    <script src="/javascripts/jquery.dataTables.js"></script>
+    <script src="/javascripts/bootstrap.js"></script>
+    <script src="/javascripts/app.js"></script>
+    <script src="/javascripts/bootstrap-switch.js"></script>
+    <script src="/javascripts/echarts.js"></script>
+    <script src="/javascripts/china.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="/stylesheets/docs.min.css"/>-->
+    <link rel="stylesheet" type="text/css" href="/stylesheets/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/table.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/AdminLTE.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/skin-blue.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap-switch.css"/>
+
+    <title>智慧协同服务器传输配置系统</title>
+</head>
+<style>
+    .box{margin:1% auto;text-align:center;border:1px solid white !important;}
+    .box.smal{width:90%;background-color: #E0E0E0;padding-left:5%;padding-right:5%; }
+
+    th{
+        height:30px !important;
+        text-align:center;
+    }
+</style>
+<body style="background-color:white;">
+
+<div class="box">
+
+
+
+    <div class="box smal">
+        <h3> 用户管理</h3>
+        <button id="delete_staff_btn" style="float:left">删除用户</button>
+        <button id="edit_staff_btn" style="float:left" data-toggle="modal" data-target="#add_modal">修改密码</button>
+        <table text-align="center"id="staff_table" class="display" cellspacing="0" >
+            <thead>
+            <tr>
+                <th>序号</th>
+                <th>用户</th>
+                <th>密码</th>
+                <th>权限</th>
+            </tr>
+            </thead>
+            <tbody>
+            <%for(var i=0;i<userlist.length;i++){%>
+            <tr>
+                <td><%= i %></td>
+                <td><%= userlist[i].username %></td>
+                <td><%= userlist[i].password %></td>
+                <td><%= userlist[i].power>0?"管理员权限":"普通用户" %></td>
+            </tr>
+            <%}%>
+            </tbody>
+        </table>
+
+        <div class="modal fade" id="add_modal" tabindex="-1" role="dialog" aria-labelledby="addModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                            &times;
+                        </button>
+                        <h4 class="modal-title" id="addModalLabel">
+                            修改密码
+                        </h4>
+                    </div>
+                    <div class="modal-body">
+
+                        <table class="table table-bordered table-hover dataTable">
+
+                            <tr>
+                                <th><span >旧密码</span></th>
+                                <td><input class="form-control" name="oldpasswd"  placeholder="旧密码"></td>
+                            </tr>
+                            <tr>
+                                <th><span >新密码</span></th>
+                                <td><input class="form-control" name="newpasswd" type="text" placeholder="新密码"></td>
+                            </tr>
+
+                        </table>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">关闭
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="add_staff()">
+                            提交
+                        </button>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+        </div>
+
+    </div>
+</div>
+<script>
+    var url='http://'+window.location.hostname+'/user_manage';
+    var dataSet;
+    var width=document.body.clientWidth;//在2345加速浏览器和火狐和ie8中都是显示白色可见区域即body部分（包括）侧边滚动栏的宽度
+
+    var  table=$('#staff_table').DataTable( {
+
+    });
+    /****************************初始化 why can't it work*******************************************/
+    //var userlist='<%=userlist%>';
+    //update_table(userlist);
+    function update_table(userlist){
+        if(userlist!=null){
+            table.clear();
+            for(var i=0;i<userlist.length;i++){
+                var user_tmp=userlist[i];
+                table.row.add([i,user_tmp.username,user_tmp.password,parseInt(userlist[i].power)>0?'管理员权限':'普通用户']).draw();
+            }
+        }
+    }
+
+
+    /*****************************页面事件*********************************************/
+    $('#staff_table tbody').on( 'click', 'tr', function () {
+        if ( $(this).hasClass('selected') ) {
+            $(this).removeClass('selected');
+        }
+        else {
+            table.$('tr.selected').removeClass('selected');
+            $(this).addClass('selected');
+        }
+    } );
+    $('#delete_staff_btn').click( function () {
+        var nTrs=table.row('.selected').data();
+
+        if(confirm("确认删除")){
+            $.post(url,{user:nTrs[2],operation:"user_delete"},function(response){
+                if(response=='fail')
+                    alert('change fail');
+                else{
+                    update_table(response);
+                    console.log(response);
+                }
+            });
+        }
+
+    } );
+    $("#edit_staff_btn").click(function(){
+        var select_num=table.rows('.selected').data().length;
+        var staff_select=table.row('.selected').data();
+        $("input[name='oldpasswd']").val(staff_select[2]);
+
+    });
+    function add_staff(){
+        var tmpdata=table.row('.selected').data();
+        $.post(url,{user:tmpdata[1],password:$("input[name='newpasswd']").val(),operation:"password_change"},function(response){
+            if(response=='fail')
+                alert('change fail');
+            else{
+                update_table(response);
+                console.log(response);
+            }
+
+        });
+    }
+    //        table.columns().every( function () {
+    //            var that = this;
+    //
+    //            $('input', this.footer()).on('keyup change', function () {
+    //                if (that.search() !== this.value) {
+    //                    that.search(this.value).draw();
+    //                }
+    //            });
+    //        });
+
+
+    //   }
+    $('#refresh').click( function(){
+        console.log("刷新数据表");
+        window.location.reload();
+    });
+
+</script>
+</body>
+</html>

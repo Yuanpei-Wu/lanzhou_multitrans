@@ -1,0 +1,265 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('UI-mar_v10:server');
+var http = require('http');
+var async=require('async');
+var sys = require('sys');
+var exec = require('child_process').exec;
+var mysql=require('mysql');
+var fs=require('fs');
+//var socket_server=require('../socket_server');
+
+var client = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'bjtungirc'
+});
+var database_name="mysql";
+var table_name1="test";
+var table_name2="old_file";
+client.connect();
+
+
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '80');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
+
+/************************************************循环更新file**********************************************************/
+global.filedata={};
+
+var filedata=global.filedata;
+var curr={},curre=[];
+//global.historydata=[];
+//var historydata=global.historydata;
+var historydata=[];
+var SQLcommand="";
+file_update();
+history_update();
+app.all('*', function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS");
+    res.header("X-Powered-By",' 3.2.1')
+    res.header("Content-Type", "application/json;charset=utf-8");
+    next();
+});
+function file_update(){
+
+
+                SQLcommand="use "+database_name;
+                client.query(SQLcommand);
+                SQLcommand="select * from "+table_name1+" where NUM>=0";
+                client.query(SQLcommand,function(error,result){
+                    if(error) {
+                        console.log(error);
+                    }else{
+                        console.log("=============================result===========================");
+                        console.log(result);
+                        for(var i=0;i<result.length;i++){
+                          if(curr[i]==null)
+                          {curr[i]=result[i]; }
+                             else
+                                 {
+                                  var rate;
+                                 rate=((parseInt(result[i].new_size)-parseInt(curr[i].new_size))*8/1000000/(parseInt(result[i].new_time)-parseInt(curr[i].new_time))).toFixed(2);
+if(isNaN(rate))
+{rate=0;}
+                    curr[i]=result[i];
+                                 curr[i].percent=Math.ceil(curr[i].new_size/curr[i].total_size*100);
+
+curre[i]=[curr[i].NUM,curr[i].dev_id,curr[i].filename,curr[i].sta_time,curr[i].end_time,curr[i].filetype,(curr[i].total_size*8/1000000).toFixed(2),curr[i].percent+"%",rate];
+
+                   }
+                        }
+                    }
+
+                    console.log(curre);
+                    global.filedata={"data":curre};
+//                    filedata={"1":20}
+                    console.log(" ========filedata");
+                    console.log(global.filedata);
+
+                })
+
+
+
+
+
+        setTimeout(function(){
+            console.log("update test 3s");
+            file_update();
+        },3000);
+}
+function history_update(){
+    historydata.length=0;
+    async.series([
+            function(callback){
+                SQLcommand="use "+database_name;
+                client.query(SQLcommand);
+                SQLcommand="select * from "+table_name2+" where NUM>=0";
+                client.query(SQLcommand,function(error,result){
+                    if(error) {
+                        console.log(error);
+                    }else{
+                        console.log("du qu mysql hou de "+result[0]);
+                        for(var i=0;i<result.length;i++){
+                                                          //console.log("file updating begins");
+                                historydata[i]=result[i];
+
+                        }
+                    }
+                    callback(null,null);
+
+                })
+            }
+
+        ]
+        ,function(err,stdout){
+            if(err) console.log(err);
+        });
+    setTimeout(function(){
+        console.log("gen xin old_file");
+        history_update();
+
+    },2000);
+}
+
+/****************************************************socket事件********************************************************/
+io.on('connection', function (socket) {
+  console.log('与UI建立好连接');
+  //socket_server(socket);
+
+
+  //监听客户端自定义的storeClientInfo事件，记录客户端id
+  socket.on('storeClientInfo', function (data) {
+    console.log('管理员建立连接');
+  });
+
+
+  //如果当websocket客户端断开连接时，会从用户ID列表里，删除该用户id
+  socket.on('disconnect', function (data) {
+        console.log('客户端断开连接');
+  });
+//    socket.on('get_filedata',function(){
+//console.log(filedata);
+//        socket.emit('return_filedata',filedata);
+//    });
+
+    socket.on('get_history_data',function(){
+        console.log("socket.on ");
+console.log(historydata.length);
+        socket.emit('return_history_data',historydata);
+    });
+    socket.on('delete_history_data',function(data){
+        var NUM=data[0];
+
+        console.log(data);
+        client.query('use '+'mysql');
+        client.query('delete from '+table_name2+' where NUM='+NUM+'');
+        client.query('update old_file set NUM=NUM-1 where NUM>'+NUM+';');
+        console.log("bian xu hao");
+        history_update();
+
+        var syscommand="rm -f /mnt/test/"+data[1]+"";
+       // client.query('update '+table_name2+' set NUM=NUM-1 where NUM>'+NUM+'');
+
+        exec(syscommand,function(err,stdout,stderror){
+            if(err){
+                console.log(err);
+            }else{
+
+          console.log("delete file succeed");
+            }
+        });
+        socket.emit("shuaxin");
+    });
+socket.on("dalete_mount_data",function(data){
+    client.query('use '+'mysql');
+    var attr=Object.getOwnPropertyNames(data);
+    var val=data[attr];
+    client.query('delete from '+table_name2+' where '+attr+'="'+val+'"');
+    history_update();
+})
+});

@@ -1,0 +1,388 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('UI-mar_v10:server');
+var http = require('http');
+var async=require('async');
+var sys = require('sys');
+var exec = require('child_process').exec;
+var mysql=require('mysql');
+var fs=require('fs');
+//var socket_server=require('../socket_server');
+
+var client = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'bjtungirc'
+});
+var come_database="clientCome",
+    file_database="clientFile",
+    ip_database="mysql",
+    ip_datatable="ip",
+    user_database="mysql",
+    user_datatable="userlist",
+    dyna_database="monitor_link",
+    net_database="DataTransfer",
+    net_datatable="FileTransfer"
+var database_name="mysql";
+var table_name1="test";
+var table_name2="old_file";
+var table_name3="updateData";
+
+client.connect();
+
+
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '80');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
+
+app.all('*', function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS");
+    res.header("X-Powered-By",' 3.2.1')
+    res.header("Content-Type", "application/json;charset=utf-8");
+    next();
+});
+/*************************************************循环查询在线车次*****************************************************************/
+global.online_device=[];
+updateOnlineDevice();
+function updateOnlineDevice(){
+    //先得到global.online_device
+    client.query("use "+ip_database);
+    client.query("select * from "+ip_datatable, function (error,result) {
+        if(error){
+            console.log(error);
+        }else{
+            for(var i=0;i< result.length;i++){
+                if(result[i].id>0)
+                    updateSet(global.online_device,{id:result[i].id,route_id:result[i].route_id,
+                        tableCome:result[i].tableCome,tableFile:result[i].tableFile,temp_num:[]},'route_id');
+            }
+        }
+    });
+    //再查找dyninfo确定update
+    client.query("use "+dyna_database);
+
+    //这里需要先判断monitor_link数据是否更新
+    for(var item in global.online_device){
+        (function (item) {
+            //取倒数第二个数字
+            var tmp=item['route_id'].split('.');
+            var num=parseInt(tmp[2]);
+            var qianzhui="ADDR_"+tmp[0]+"_"+tmp[1]+"_";
+            var houzui="_"+tmp[3];
+            var flag=false;
+            //根据这个数字得到所有表名
+            var arr=[0,1,2,3,4,5];
+            async.eachSeries(arr, function (ele,callback) {
+                var tmp_datatable=qianzhui+(num+ele)+houzui;
+                //console.log(tmp_datatable);
+                client.query("use "+dyna_database);
+                client.query("select * from "+tmp_datatable+" order by id desc limit 1", function (error,result) {
+                    if(error){
+                        console.log(error);
+                    }else{
+                        if(result.length>0){
+                            //if(parseInt(result[0]['id'])!=item['temp_num'][ele])
+                              //  flag=true;
+                            if(parseInt(result[0]['lossrate'])<30)
+                                flag=true;
+                           // item['temp_num'][ele]=parseInt(result[0]['id']);
+                        }
+
+
+                    }
+                    callback(null);
+                })
+            }, function (err) {
+                //console.log(err);
+                //根据最后结果判断update
+                if(flag){
+                    item['update']=1;
+                }else{
+                    item['update']=0;
+                }
+            })
+
+
+
+        })(global.online_device[item])
+    }
+    setTimeout(updateOnlineDevice,3000);
+}
+//目前不需要删除，之后根据实际变动
+function updateSet(objectSet,object,key){
+    var i=objectSet.length;
+    for(var j=0;j<i;j++){
+        if(!objectSet[j].hasOwnProperty(key)|!object.hasOwnProperty(key))
+            return -1;
+        if(objectSet[j][key]===object[key])
+            return j;
+    }
+    objectSet.push(object);
+    //console.log("objectSet:" +objectSet);
+    return -2;
+}
+
+/************************************************循环更新数据**********************************************************/
+global.filedata=[];
+global.historydata=[];
+var curr=[],curre=[];
+
+global.netdata=[];
+var SQLcommand="";
+
+file_update();
+history_update();
+net_update();
+
+
+function file_update(){
+
+    for(var index in global.online_device){
+        (function (device) {
+            client.query("use "+come_database);
+            client.query("select * from "+device['tableCome']+" where NUM>=0", function (error,result) {
+                if(error) {
+                    console.log(error);
+                }else{
+                    var num=updateSet(global.filedata,{tableCome:device.tableCome,tableFile:device.tableFile,route_id:device.route_id,data:[],last:[]},'route_id');
+                    if(num>=0){
+                        global.filedata[num].data.length=0;
+                        if(result.length>0){
+                            for(var i=0;i<result.length;i++){
+                                if(global.filedata[num]['last'][i]==null) {
+                                    global.filedata[num]['last'][i] = result[i];
+                                } else {
+                                    global.filedata[num]['last'][i]=result[i];
+                                    var rate=((parseInt(result[i].new_size)-parseInt(global.filedata[num]['last'][i].new_size))*8/1000000
+                                    /(parseInt(result[i].new_time)-parseInt(global.filedata[num]['last'][i].new_time))).toFixed(2);
+                                    if(isNaN(rate))
+                                        rate=0;
+                                    var percent=Math.ceil(result[i].new_size/result[i].total_size*100);
+                                    global.filedata[num]['data'][i]=[result[i].NUM,result[i].dev_id,result[i].filename,result[i].sta_time,
+                                        (result[i].total_size*8/1000000).toFixed(2),percent+"%",rate];
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+            })
+        })(global.online_device[index])
+    }
+
+    setTimeout(function(){
+        file_update();
+    },3000);
+}
+function history_update(){
+    //historydata.length=0;
+    for(var index in global.online_device){
+        (function (device) {
+            client.query("use "+file_database);
+            client.query("select * from "+device['tableFile']+" where NUM >=0", function (errror,result) {
+                if(errror)
+                    console.log(errror);
+                else{
+                    var num=updateSet(global.historydata,{route_id:device.route_id,data:[],tableFile:device.tableFile},'route_id');
+                    if(num>=0){
+                        global.historydata[num].data.length=0;
+                        for(var i=0;i<result.length;i++) {
+                            global.historydata[num].data[i]=[result[i].NUM,result[i].time,0,result[i].filename,result[i].filesize];
+                        }
+                    }
+
+
+                }
+            })
+        })(global.online_device[index]);
+    }
+    setTimeout(function(){
+        history_update();
+
+    },2000);
+}
+
+function net_update(){
+	global.netdata.length=0;
+    async.series([
+            function(callback){
+                SQLcommand="use "+net_database;
+                client.query(SQLcommand);
+                SQLcommand="select * from "+net_datatable;
+                client.query(SQLcommand,function(err,result){
+                    global.netdata.length=0;
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        for(var i=0;i<result.length;i++){
+                            global.netdata[i]=[result[i].ID,result[i].DevID,result[i].FileName,result[i].FileSize,
+                                result[i].startTime,result[i].endTime,result[i].FileStatus];
+                        }
+                    }
+                    callback(null,null);
+                });
+            }
+        ]
+        ,function(err,stdout){
+		if(err) console.log(err);
+    });
+	setTimeout(function(){
+		net_update();
+	},2000);
+}
+
+/*********************userlist全局变量****************/
+global.userlist=[];
+client.query("use "+user_database);
+client.query("select * from "+user_datatable,function(err,result){
+    if(err){
+        console.log(err);
+    }
+    else{
+        global.userlist=result;
+    }
+});
+
+/****************************************************socket事件********************************************************/
+//global.online_device=[{checi:"KZ112"},{checi:"KZ111"}];
+io.on('connection', function (socket) {
+  console.log('与UI建立好连接');
+
+    socket.on("online", function (data) {
+        global.online_device.push(data);
+    })
+
+  //监听客户端自定义的storeClientInfo事件，记录客户端id
+  socket.on('storeClientInfo', function (data) {
+    console.log('管理员建立连接');
+  });
+
+
+  socket.on('disconnect', function (checi) {
+      if(checi!=null){
+          for(i=0;i<global.online_device.length;i++){
+              if(global.online_device[i].checi==checi){
+                  global.online_device.slice(i,1);
+              }
+          }
+      }
+
+        console.log('客户端断开连接');
+  });
+    socket.on('get_history_data',function(){
+        socket.emit('return_history_data',historydata);
+    });
+    socket.on('delete_history_data',function(data){
+        var NUM=data[0];
+
+        console.log(data);
+        client.query('use '+'mysql');
+        client.query('delete from '+table_name2+' where NUM='+NUM+'');
+        client.query('update old_file set NUM=NUM-1 where NUM>'+NUM+';');
+        console.log("bian xu hao");
+        history_update();
+        var syscommand="rm -f /mnt/test/"+data[1]+"";
+        exec(syscommand,function(err,stdout,stderror){
+            if(err){
+                console.log(err);
+            }else{
+
+                console.log("delete file succeed");
+            }
+        });
+        socket.emit("shuaxin");
+    });
+    socket.on("dalete_mount_data",function(data){
+        client.query('use '+'mysql');
+        var attr=Object.getOwnPropertyNames(data);
+        var val=data[attr];
+        client.query('delete from '+table_name2+' where '+attr+'="'+val+'"');
+        history_update();
+    });
+});

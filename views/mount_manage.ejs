@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" >
+    <script src="/javascripts/jquery-2.2.4.js"></script>
+    <script src="/javascripts/socket.io.js"></script>
+    <script src="/javascripts/highcharts.js"></script>
+    <script src="/javascripts/highcharts-more.js"></script>
+    <script src="/javascripts/layer.js"></script>
+    <script src="/javascripts/jquery.dataTables.js"></script>
+    <script src="/javascripts/bootstrap.js"></script>
+    <script src="/javascripts/app.js"></script>
+    <script src="/javascripts/bootstrap-switch.js"></script>
+    <script src="/javascripts/echarts.js"></script>
+    <script src="/javascripts/china.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="../public/css/bootstrap.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="../public/css/docs.min.css"/>-->
+    <link rel="stylesheet" type="text/css" href="../public/css/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../public/css/table.css"/>
+    <link rel="stylesheet" type="text/css" href="../public/css/AdminLTE.css"/>
+    <link rel="stylesheet" type="text/css" href="../public/css/skin-blue.css"/>
+    <link rel="stylesheet" type="text/css" href="../public/css/bootstrap-switch.css"/>
+
+    <title>智慧协同服务器传输配置系统</title>
+</head>
+<style>
+    .box{margin:1% auto;text-align:center;border:1px solid white !important;}
+    .box.smal{width:90%;background-color: #E0E0E0;padding-left:5%;padding-right:5%; }
+
+    th{
+        height:30px !important;
+        text-align:left;
+
+    }
+
+
+select{
+    width:100%;
+}
+</style>
+<body style="background-color:white;">
+<div class="box">
+    <div class="box smal">
+        <h2>批量删除</h2>
+        <table align="center">
+            <tr>
+                <th><span >按时间段批量删除：</span></th>
+                <td>
+                   <select id="timestart">
+                    </select>
+                   <td>
+                    <select id="timeend">
+                    </select>
+                    </td>
+                </td>
+                <th><button>全部删除</button></th>
+            </tr>
+            <tr>
+                <th><span >按车次号批量删除：</span></th>
+                <td>
+                    <select id="dev_id">
+                    </select>
+                </td>
+                <th><button>全部删除</button></th>
+            </tr>
+            <tr>
+                <th><span >按文件名批量删除：</span></th>
+                <td>
+                    <select id="filename">
+                    </select></td>
+                <th><button>全部删除</button></th>
+            </tr>
+            <tr>
+                <th><span > 按文件类型批量删除：</span></th>
+                <td>
+                    <select id="filetype">
+                    </select></td>
+                <th><button>全部删除</button></th>
+            </tr>
+        </table>
+
+    </div>
+</div>
+<script>
+    var ipaddr='';
+    var socket={};
+    var time=[],filetype=[],filename=[],dev_id=[];
+    ipaddr=location.hostname;
+var delete_mount_data={};
+    socket=io.connect("http://"+ipaddr+":80");
+    update_filedata();
+    socket.on('return_history_data',function(filedata){
+        if(filedata!=null){
+            for(var i=0;i<filedata.length;i++)
+
+            {
+                time.push(filedata[i].time)
+                filetype.push(filedata[i].filetype)
+                filename.push(filedata[i].filename);
+                dev_id.push(filedata[i].dev_id);
+            }
+        }
+        var timeUnique=GetUnique(time);
+        var filetypeUnique=GetUnique(filetype);
+        var filenameUnique=GetUnique(filename);
+        var dev_idUnique=GetUnique(dev_id);
+        for(var i=0;i<dev_idUnique.length;i++)
+        {jQuery("#dev_id").append("<option value="+dev_idUnique[i]+">"+dev_idUnique[i]+"</option>");}
+        for(var i=0;i<filenameUnique.length;i++)
+        {jQuery("#filename").append("<option value="+filenameUnique[i]+">"+filenameUnique[i]+"</option>");}
+        for(var i=0;i<filetypeUnique.length;i++)
+        {jQuery("#filetype").append("<option value="+filetypeUnique[i]+">"+filetypeUnique[i]+"</option>");}
+        for(var i=0;i<timeUnique.length;i++)
+        {jQuery("#timestart").append("<option value="+timeUnique[i]+">"+timeUnique[i]+"</option>");
+            jQuery("#timeend").append("<option value="+timeUnique[i]+">"+timeUnique[i]+"</option>");}
+
+    });
+
+
+        $(":button").eq(1).click(function() {
+
+ var d=$("#dev_id option:selected").val();
+            if(d!=undefined){
+                delete_mount_data={"dev_id":d}
+
+                if(confirm("确定删除所有车次号为"+d+"的数据吗？"))
+
+                {
+                            DeleteData(delete_mount_data);
+                                 update_filedata();}
+            }
+                else
+            {
+                alert("没有数据，请选择数据！")
+            }
+        });
+    $(":button").eq(2).click(function() {
+        var d=$("#filename option:selected").val();
+        if(d!=undefined) {
+            delete_mount_data = {"filename": d}
+
+            if (confirm("确定删除所有文件名为" + d + "的数据吗？"));
+            {
+                DeleteData(delete_mount_data);
+                update_filedata();
+            }
+        }
+        else
+        {alert("没有数据，请选择数据！")}
+
+
+    });
+    $(":button").eq(3).click(function() {
+        var d=$("#filetype option:selected").val();
+if(d!=undefined)
+{
+        delete_mount_data={"filetype":d}
+
+        if(confirm("确定删除所有文件类型为"+d+"的数据吗？"));
+       { DeleteData(delete_mount_data);
+        update_filedata();}
+}
+else
+{alert("没有数据，请选择数据！")}
+    });
+function DeleteData(data)
+{
+    console.log("chuan ru de shan chu de dui xiang: ");
+    console.log(data);
+    socket.emit("dalete_mount_data",data);
+    console.log("fa song chegn gong ");
+    window.location.reload();
+}
+
+    function GetUnique(inputArray)
+    {
+        var outputArray = [];
+
+        for (var i = 0; i < inputArray.length; i++)
+        {
+            if ((jQuery.inArray(inputArray[i], outputArray)) == -1)
+            {
+
+                outputArray.push(inputArray[i]);
+            }
+
+        }
+
+        return outputArray;
+    }
+    function update_filedata(){
+        socket.emit('get_history_data');
+//        setTimeout(function(){
+//            alert("123");
+//            update_filedata();
+//        },3000);
+    }
+
+</script>
+</body>
+</html>

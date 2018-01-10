@@ -1,0 +1,146 @@
+
+html,body{
+    font-size:12px;
+    -webkit-text-size-adjust:none;
+    margin:0px;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    /*overflow-Y:auto;*/
+}
+.map-parent-contain{
+    position:absolute;
+    top:0px;
+    left:0px;
+    width:100%;
+    height:100%;
+    border:0px solid #ccc;
+    z-index:1;
+}
+/*定义html5中placeholder的颜色*/
+::-webkit-input-placeholder{color:#999;}
+::-moz-placeholder{color:#999;}
+:-moz-placeholder{color:#999;}
+:-ms-input-placeholder{color:#999;}
+/*定义容器自动隐藏文本*/
+.overflowAuto{
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    overflow:hidden;
+}
+/*定义圆角边框*/
+.borderRadius{
+    -moz-border-radius:5px;      /* Gecko browsers */
+    -webkit-border-radius:5px;   /* Webkit browsers */
+    border-radius:5px;            /* W3C syntax */
+}
+/*定义滚动条高宽及背景 高宽分别对应横竖滚动条的尺寸*/
+::-webkit-scrollbar{
+    width: 10px;
+    height: 10px;
+    /*background-color: #F5F5F5;  */
+}
+/*定义滚动条轨道 内阴影+圆角*/
+::-webkit-scrollbar-track{
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+    border-radius: 10px;
+    background-color: #c6bda1;
+}
+/*定义滑块 内阴影+圆角*/
+::-webkit-scrollbar-thumb{
+    border-radius: 10px;
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
+    background-color: #7d662b;
+}
+
+
+/* .login_btn{
+	height:30px;
+	position:relative;
+	top:50%;
+	width:70px;
+	margin:0 auto;
+} */
+/*.login_btn input{*/
+	/*height:30px;*/
+	/*position:relative;*/
+	/*top:50%;*/
+	/*width:70px;*/
+	/*margin:0 auto;*/
+	/**/
+	/*padding-left:10px;*/
+	/*-webkit-border-radius:.3em;*/
+	/*-moz-border-radius: .3em;*/
+
+	/*background:#1b85fd;*/
+	/*color:#FFF;*/
+	/*font-size:16px;*/
+	/*font-weight:bolder;*/
+	/*letter-spacing:0.8em;*/
+
+
+/*}*/
+
+/*.login_btn input:hover{*/
+	/*background:#1263be;*/
+	/*}*/
+  .login-bg{
+      position: absolute;
+      left:0px;
+      top:0px;
+      width:100%;
+      height:100%;
+      background: url(../images/bg12.png) no-repeat;
+      background-size:100% 100%;
+  }
+
+
+  .login-content-name{
+      position: relative;
+      left:0px;
+      top:43%;
+      height: 2.2%;
+      width: 100%;
+      border: 0px solid red;
+  }
+
+  .login-content-name-text,.login-content-password-text{
+      position: relative;
+      left:47%;
+      top:0px;
+      width:10%;
+      height: 100%;
+      border: 0px solid red;
+  }
+  .login-content-password{
+      position: relative;
+      left:0px;
+      top:48.5%;
+      height: 2.2%;
+      width: 100%;
+      border: 0px solid red;
+  }
+  .txt-input{
+      width:100%;
+      height:100%;
+      line-height:30px;
+      border: opx;
+      border: none;
+      outline: none;
+  }
+  .login-content-btn{
+      position: relative;
+      left:60%;
+      top:50%;
+      height: 4%;
+      width: 4%;
+      border: 0px solid red;
+  }
+  .login-content-btn-input{
+      position: relative;
+      right:80%;
+      width:100%;
+      height:100%;
+      cursor:pointer;
+
+  }

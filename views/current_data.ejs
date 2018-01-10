@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" >
+    <script src="/javascripts/jquery-2.2.4.js"></script>
+    <script src="/javascripts/socket.io.js"></script>
+    <script src="/javascripts/highcharts.js"></script>
+    <script src="/javascripts/highcharts-more.js"></script>
+    <script src="/javascripts/layer.js"></script>
+    <script src="/javascripts/jquery.dataTables.js"></script>
+    <script src="/javascripts/bootstrap.js"></script>
+    <script src="/javascripts/app.js"></script>
+    <script src="/javascripts/bootstrap-switch.js"></script>
+    <script src="/javascripts/echarts.js"></script>
+    <script src="/javascripts/china.js"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="/stylesheets/docs.min.css"/>-->
+    <link rel="stylesheet" type="text/css" href="/stylesheets/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/table.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/AdminLTE.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/skin-blue.css"/>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/bootstrap-switch.css"/>
+
+    <title>智慧协同服务器传输配置系统</title>
+</head>
+<style>
+
+    .box{margin:0 auto;text-align:center;background-color:rgb(255,255,255,0);border:0; !important;}
+    .box.smal{width:90%;background-color: rgb(255,255,255,0);padding-left:5%;border:0;padding-right:5%; }
+    th{
+        height:30px !important;
+        text-align:center;
+        font-size:25px;
+    }
+    tr{
+        height:50px !important;
+        text-align:center;
+        background-color:rgb(79,112,184);
+    }
+</style>
+<body style="background-color:rgb(161,179,219);border:0">
+<div class="box">
+    <div class="box smal" id="my_content">
+        <h3> 车地智慧协同传输 </h3>
+        <div class="box smal" style="height: 45px;background-color:rgb(79,112,184);color:yellow;padding-top:9px;font-size: 23px;" id="total_rate">
+        </div>
+
+    </div>
+</div>
+<script>
+    $(function(){
+        //var totalrate=0;
+        var ipaddr='';
+        ipaddr=location.hostname;
+        //存储table object
+        var table_list=[];
+
+        //更新总速率
+        function update_total(){
+            $.get('http://'+ipaddr+'/return_totalrate', function (totalrate) {
+                totalrate=parseFloat(totalrate);
+
+                if(totalrate<1){
+                    totalrate=0;
+                }
+                /*
+                if(totalrate>240){
+                    totalrate=240;
+                }
+                 */
+                $('#total_rate').html("<b>实时传输总速率："+totalrate.toFixed(2)+"Mb/s</b>");
+            })
+            setTimeout(update_total,1000);
+        }
+        update_total();
+        //每两秒询问一次global.online，暂不考虑删除，否则会很复杂
+        function check_online(){
+            $.get('return_online', function (data) {
+                var tem_len=data.length;
+                for(var i=0;i<tem_len;i++) {
+                    //只有data[i]不在table_list里面的时候才会append_table
+                    var num=updateSet(table_list,data[i],"route_id");
+                    if(num==(-2)){
+                        var table_len=table_list.length;
+                        append_table((table_len-1),data[i]['tableCome']);
+
+                    }else{
+                        //根据update字段判断是否显示表格
+
+                        if(data[i].update>0){
+                            $('#'+data[i].tableCome).show();
+                        }else{
+                            $('#'+data[i].tableCome).hide();
+                        }
+
+                    }
+
+
+                }
+                setTimeout(check_online,2000);
+            })
+        }
+        check_online();
+
+        //每两秒更新一次表格数据
+        function update_table(){
+            for(var item in table_list){
+                //console.log(table_list[item]['table']);
+
+                //console.log("url:",table_list[item]['table'].ajax.url());
+                //var name=table_list[item]['route_id']+"_staff_table";
+                //console.log(name);
+                //$(name).DataTable().ajax.url("return_current_data?route_id="+table_list[item]['route_id']).load(null,false);
+                table_list[item]['table'].ajax.reload(null,false);
+                //table_list[item]['table'].order([7,'asc'],[0,'desc']);
+            }
+            setTimeout(update_table,2000);
+        }
+        update_table();
+
+        //将table object存储在table_list[num]中
+        function append_table(num,ip_str){
+            $('#my_content').append('<div id="'+ip_str+'"> \
+                            <h4>'+ip_str+'车次</h4> \
+                            <table text-align="center" id="'+ip_str+'_staff_table" class="display" cellspacing="0"> \
+                            <thead> \
+                            <tr> \
+                            <th><font color="white">序号</font></th> \
+                            <th><font color="white">设备编号</font></th> \
+                            <th><font color="white">文件名</font></th> \
+                            <th><font color="white">传输开始时间</font></th> \
+                            <th><font color="white">文件大小(Mb)</font></th> \
+                            <th><font color="white">&nbsp&nbsp&nbsp&nbsp传输进度&nbsp&nbsp&nbsp&nbsp</font></th> \
+                            <th style="display: none">whatever</th> \
+                            </tr> \
+                            </thead> \
+                            </table> \
+                            </div> \
+                            ');
+
+            var  table=$('#'+ip_str+'_staff_table').DataTable( {
+                "ajax": {
+                    "url":'http://'+ipaddr+'/return_current_data?route_id='+ip_str,
+                    //"url":'http://'+ipaddr+'/return_current_data',
+                    "type": "GET"
+                },
+                "lengthMenu": [ 15,20,25,30,40,70,100 ],
+                "destroy": true,
+                "fnCreatedRow": function (nRow, aData, iDataIndex) {
+                    if (aData[5] == "100%") {
+                        //$('td:eq(8)', nRow).html('<a style="color:darkgreen;">0</a>');
+                        //$('td:eq(7)', nRow).html('<a style="color:darkgreen;">完成</a>');
+                        table.rows($(nRow)).remove();
+                    }
+                    else {
+                        if (parseFloat(aData[5]) <parseFloat("100%") && parseFloat(aData[5])>parseFloat("0%")) {
+
+                            $('td:eq(5)', nRow).html('<a style="color:blue;">'+aData[5]+'</a>');
+                        }
+                        else
+                        {
+                            //$('td:eq(8)', nRow).html('<a >0</a>');
+                            //$('td:eq(7)', nRow).html('<a style="color:darkgoldenrod;">未开始</a>');
+                            table.rows($(nRow)).remove();
+                        }
+                    }
+                    $('td:eq(6)',nRow).html('<a style="display:none">youcantseeme</a>');
+                    $('td:eq(1)',nRow).text("协同路由器");
+                    //$('td:eq(5)',nRow).html('<a style="display:none">youcantseeme</a>');
+                    aData[6]=parseFloat(aData[6]);
+
+                    //$('#'+ip_str+'_total_rate').text("总传输速率："+totalrate.toFixed(2)+"Mb/s");
+                }
+
+            } );
+            table_list[num]['table']=table;
+            //console.log("immediate",table.ajax.url());
+
+
+        }
+
+
+
+        function updateSet(objectSet,object,key){
+            var i=objectSet.length;
+            for(var j=0;j<i;j++){
+                if(!objectSet[j].hasOwnProperty(key)|!object.hasOwnProperty(key))
+                    return -1;
+                if(objectSet[j][key]===object[key])
+                    return j;
+            }
+            objectSet.push(object);
+            return -2;
+        }
+
+        /**
+         * used to add,change or delete objects
+         * @param m_array ,an object array
+         * @param m_object ,new object
+         * @param key ,must be a string and unique
+         */
+        function obj_update(m_array,m_object,key){
+            var m_length=m_array.length;
+            var exits=-1;
+            var ifdelete=false;
+            for(var i=0;i<m_length;i++){
+                if(m_array[i][key]==m_object[key]){
+                    exits=i;
+                    if(compareObj(m_array[i],m_object))
+                        ifdelete=true;
+                    break;
+                }
+            }
+            if(exits>=0){
+                if(ifdelete)
+                    m_array.slice(i,1);//删除
+                else
+                    m_array[i]=m_object;//更新
+            }else{
+                m_array.push(m_object);//添加
+            }
+        }
+
+
+        /**
+         * used to compare two objects and check if their properties and value are totally equal
+         * @param obj1
+         * @param obj2
+         * @returns {boolean}
+         * there are still problems need to be considered
+         */
+        function compareObj(obj1,obj2){
+            if(obj1===obj2)
+                return true;
+            for(var x in obj1){
+                if(obj1.hasOwnProperty(x)){
+                    if(!obj2.hasOwnProperty(x))
+                        return false;
+                    if(obj1[x]===obj2[x]){
+                        continue;
+                    }
+                    else{
+                        if(!compareObj(obj1[x],obj2[x])){
+                            return false;
+                        }
+                    }
+                }
+            }
+            for(var y in obj2){
+                if(obj2.hasOwnProperty(y)){
+                    if(!obj1.hasOwnProperty(y))
+                        return false;
+                    if(obj1[y]===obj2[y]){
+                        continue;
+                    }else{
+                        if(!compareObj(obj1[y],obj2[y])){
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+    });
+
+
+</script>
+</body>
+</html>
+
